@@ -1,0 +1,64 @@
+# 默认配置文件
+# Curi1 World Model - DreamerV4
+
+# 环境配置
+env:
+  name: "Curi1-v0"
+  obs_type: "image"  # image, state, or hybrid
+  obs_shape: [3, 64, 64]  # [channels, height, width]
+  action_dim: 6
+  action_range: [-1.0, 1.0]
+  max_episode_steps: 1000
+
+# 模型配置
+model:
+  # VAE 配置
+  vae:
+    input_channels: 3
+    latent_dim: 32
+    encoder_hidden_dims: [32, 64, 128, 256]
+    decoder_hidden_dims: [256, 128, 64, 32]
+
+  # RSSM 配置
+  rssm:
+    stoch_dim: 32          # 随机状态维度
+    deter_dim: 256         # 确定性状态维度
+    hidden_dim: 256        # 隐藏层维度
+    num_layers: 1          # GRU 层数
+
+  # Actor 配置
+  actor:
+    hidden_dim: 256
+    num_layers: 3
+    log_std_min: -10.0
+    log_std_max: 2.0
+
+  # Critic 配置
+  critic:
+    hidden_dim: 256
+    num_layers: 3
+    num_critics: 2         # 集成 Critic 数量
+
+  # 训练参数
+  kl_weight: 1.0           # KL 散度权重
+  free_nats: 3.0           # KL 自由位
+
+# 设备配置
+device: "cuda"             # cuda or cpu
+seed: 42                   # 随机种子
+
+# 日志配置
+logging:
+  log_interval: 10         # 每 N 个 episode 记录一次
+  save_interval: 100       # 每 N 个 episode 保存一次检查点
+  tensorboard: true        # 是否使用 TensorBoard
+  wandb: false             # 是否使用 W&B
+  wandb_project: "curi1_world_model"
+  wandb_entity: null
+
+# 保存路径
+paths:
+  data_dir: "data"
+  log_dir: "experiments/logs"
+  checkpoint_dir: "experiments/checkpoints"
+  results_dir: "experiments/results"

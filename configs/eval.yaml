@@ -1,0 +1,45 @@
+# 评估配置文件
+# Curi1 World Model - DreamerV4
+
+# 继承默认配置
+defaults:
+  - default
+
+# 环境配置
+env:
+  name: "Curi1-v0"
+  max_episode_steps: 1000
+
+# 评估配置
+evaluation:
+  num_episodes: 10         # 评估 episode 数
+  deterministic: true      # 使用确定性策略
+  render: false            # 是否渲染环境
+  save_video: false        # 是否保存视频
+  video_fps: 30            # 视频帧率
+
+  # 可视化配置
+  visualize_predictions: true    # 可视化模型预测
+  visualize_latent: true         # 可视化潜在空间
+  visualize_imagination: true    # 可视化想象轨迹
+
+  # 分析配置
+  analyze_states: true           # 分析状态分布
+  analyze_actions: true          # 分析动作分布
+  compute_metrics: true          # 计算额外指标
+
+# 模型检查点
+checkpoint:
+  path: null               # 检查点路径（必须提供）
+  load_optimizer: false    # 是否加载优化器状态
+
+# 设备配置
+device: "cuda"
+seed: 42
+
+# 输出配置
+output:
+  save_results: true       # 保存评估结果
+  save_plots: true         # 保存图表
+  save_trajectories: false # 保存轨迹数据
+  results_dir: "experiments/results"

@@ -1,1 +1,256 @@
-# curi1_world
+# Curi1 World Model - DreamerV4
+
+基于 VAE 世界模型和 DreamerV4 算法的 Curi1 机器人强化学习项目。
+
+## 项目概述
+
+本项目实现了一个完整的世界模型强化学习系统，用于 Curi1 机器人控制任务。系统包含以下核心组件：
+
+- **VAE (Variational Autoencoder)**: 学习观察空间的紧凑潜在表示
+- **RSSM (Recurrent State Space Model)**: 学习环境动态和预测未来状态
+- **Actor-Critic**: 策略网络和价值网络，用于决策和价值估计
+- **DreamerV4**: 整合以上组件的完整世界模型强化学习算法
+
+## 项目结构
+
+```
+curi1_world/
+├── README.md                   # 项目说明
+├── requirements.txt            # Python 依赖
+├── setup.py                    # 安装脚本
+├── configs/                    # 配置文件
+│   ├── default.yaml           # 默认配置
+│   ├── train.yaml             # 训练配置
+│   └── eval.yaml              # 评估配置
+├── src/                        # 源代码
+│   ├── models/                # 模型定义
+│   │   ├── vae.py            # VAE 模型
+│   │   ├── rnn.py            # RSSM 模型
+│   │   ├── controller.py     # Actor-Critic
+│   │   └── dreamer.py        # DreamerV4 主模型
+│   ├── agents/                # 智能体
+│   │   └── dreamer_agent.py  # DreamerV4 智能体
+│   ├── envs/                  # 环境接口
+│   │   └── robot_env.py      # 机器人环境
+│   └── utils/                 # 工具模块
+│       ├── data_loader.py    # 数据加载
+│       ├── replay_buffer.py  # 回放缓冲区
+│       └── logger.py         # 日志记录
+├── scripts/                    # 训练和评估脚本
+│   ├── train_vae.py          # VAE 预训练
+│   ├── train_dreamer.py      # DreamerV4 训练
+│   └── evaluate.py           # 模型评估
+├── data/                       # 数据目录
+│   ├── raw/                  # 原始数据
+│   └── processed/            # 处理后的数据
+├── experiments/                # 实验结果
+│   ├── logs/                 # 训练日志
+│   ├── checkpoints/          # 模型检查点
+│   └── results/              # 评估结果
+└── notebooks/                  # Jupyter notebooks
+    └── visualization.ipynb   # 可视化分析
+```
+
+## 环境设置
+
+### 1. 创建 Conda 环境
+
+```bash
+conda create -n curi1_world python=3.9
+conda activate curi1_world
+```
+
+### 2. 安装依赖
+
+```bash
+cd curi1_world
+pip install -r requirements.txt
+```
+
+### 3. 安装项目
+
+```bash
+pip install -e .
+```
+
+## 使用指南
+
+### 数据收集
+
+首先需要收集机器人交互数据用于训练。数据应包含观察序列、动作序列和奖励序列。
+
+```python
+# 示例：收集数据
+from src.envs.robot_env import RobotEnv
+from src.utils.data_loader import save_episode
+
+env = RobotEnv(env_name="Curi1-v0")
+# 收集多个 episode 并保存
+```
+
+### VAE 预训练（可选）
+
+可以先单独预训练 VAE 来学习观察的潜在表示：
+
+```bash
+python scripts/train_vae.py \
+    --config configs/train.yaml \
+    --data_dir data/raw \
+    --exp_name vae_pretrain
+```
+
+### DreamerV4 训练
+
+端到端训练完整的世界模型和策略：
+
+```bash
+python scripts/train_dreamer.py \
+    --config configs/train.yaml \
+    --env_name Curi1-v0 \
+    --exp_name dreamer_v4_run1 \
+    --device cuda
+```
+
+训练参数可以在 `configs/train.yaml` 中配置：
+
+- `num_episodes`: 训练的总 episode 数
+- `batch_size`: 批量大小
+- `seq_len`: 序列长度
+- `imagine_horizon`: 想象轨迹长度
+- `learning_rate`: 学习率
+- 等等...
+
+### 模型评估
+
+评估训练好的模型：
+
+```bash
+python scripts/evaluate.py \
+    --checkpoint experiments/checkpoints/dreamer_v4_run1/best_model.pt \
+    --env_name Curi1-v0 \
+    --num_episodes 10 \
+    --deterministic \
+    --device cuda
+```
+
+评估结果将保存在 `experiments/results/` 目录下。
+
+## 核心算法
+
+### DreamerV4 工作流程
+
+1. **数据收集**: 与环境交互收集经验数据
+2. **世界模型学习**:
+   - VAE 学习观察的潜在表示
+   - RSSM 学习状态转移动态
+   - 预测奖励和终止信号
+3. **策略学习**:
+   - 在世界模型中想象未来轨迹
+   - Actor 优化策略以最大化想象中的累积奖励
+   - Critic 学习价值函数
+4. **重复**: 使用更新后的策略收集新数据
+
+### 关键特性
+
+- **模型驱动**: 学习环境模型，提高样本效率
+- **想象规划**: 在学到的世界模型中进行前瞻规划
+- **端到端学习**: 从原始观察到动作的端到端训练
+- **灵活架构**: 支持图像、状态或混合观察
+
+## 配置说明
+
+### 模型配置
+
+在 `configs/train.yaml` 中可以配置：
+
+- **VAE**: `latent_dim`, `encoder_hidden_dims`, `decoder_hidden_dims`
+- **RSSM**: `stoch_dim`, `deter_dim`, `hidden_dim`
+- **Actor**: `hidden_dim`, `num_layers`
+- **Critic**: `hidden_dim`, `num_critics`
+
+### 训练配置
+
+- `batch_size`: 批量大小（默认 16）
+- `seq_len`: 序列长度（默认 50）
+- `imagine_horizon`: 想象步数（默认 15）
+- `gamma`: 折扣因子（默认 0.99）
+- `lambda`: GAE lambda（默认 0.95）
+- `learning_rate`: 学习率（默认 3e-4）
+
+## 机器人接口
+
+`src/envs/robot_env.py` 中的 `Curi1Env` 类需要根据实际机器人 API 实现。主要需要实现以下方法：
+
+- `_init_robot()`: 初始化机器人连接
+- `_get_camera_image()`: 获取相机图像
+- `_get_robot_state()`: 获取机器人状态
+- `_execute_action()`: 执行动作命令
+- `_compute_reward()`: 计算任务奖励
+
+示例使用 ROS 接口的实现已在代码注释中提供。
+
+## 实验跟踪
+
+### TensorBoard
+
+训练过程中的指标会自动记录到 TensorBoard：
+
+```bash
+tensorboard --logdir experiments/logs
+```
+
+### Weights & Biases（可选）
+
+如果安装了 wandb，可以启用在线实验跟踪：
+
+```bash
+# 在 configs/train.yaml 中设置
+logging:
+  wandb: true
+  wandb_project: "curi1_world_model"
+```
+
+## 常见问题
+
+### Q: 如何调整模型大小？
+
+A: 在 `configs/train.yaml` 中修改模型配置参数，如 `latent_dim`, `stoch_dim`, `deter_dim` 等。
+
+### Q: 训练需要多长时间？
+
+A: 取决于任务复杂度和硬件配置。通常需要数千到数万个 episodes。建议使用 GPU 加速。
+
+### Q: 如何使用预训练模型？
+
+A: 使用 `--resume` 参数加载检查点：
+
+```bash
+python scripts/train_dreamer.py --resume experiments/checkpoints/.../checkpoint.pt
+```
+
+### Q: 如何调试环境接口？
+
+A: 运行环境测试代码：
+
+```bash
+python -m src.envs.robot_env
+```
+
+## 参考文献
+
+- [World Models](https://arxiv.org/abs/1803.10122) - Ha & Schmidhuber, 2018
+- [Dream to Control](https://arxiv.org/abs/1912.01603) - Hafner et al., 2019
+- [Mastering Atari with Discrete World Models](https://arxiv.org/abs/2010.02193) - Hafner et al., 2020
+- [DreamerV3](https://arxiv.org/abs/2301.04104) - Hafner et al., 2023
+
+## 许可证
+
+MIT License
+
+## 联系方式
+
+如有问题或建议，请联系项目维护者。
+
+---
+
+**祝训练顺利！** 🤖🚀
