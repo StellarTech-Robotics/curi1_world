@@ -56,7 +56,7 @@ curi1_world/
 ### 1. 创建 Conda 环境
 
 ```bash
-conda create -n curi1_world python=3.9
+conda create -n curi1_world python=3.10
 conda activate curi1_world
 ```
 
