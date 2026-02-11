@@ -1,0 +1,3 @@
+[console_scripts]
+curi1-eval = scripts.evaluate:main
+curi1-train = scripts.train_dreamer:main
